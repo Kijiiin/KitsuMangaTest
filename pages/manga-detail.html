@@ -723,7 +723,7 @@
 
   async function loadMangaDetails() {
     try {
-      const res = await fetch('manga.json');
+      const res = await fetch('../data/manga.json');
       if (res.ok) {
         const mangas = await res.json();
         const mangaData = mangas.find(m => m.id === mangaId);
