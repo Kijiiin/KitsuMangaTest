@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
+  <title>Admin - Aggiungi Manga</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63);
+      color: white;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(0,0,0,0.3);
+      padding: 2rem;
+      border-radius: 20px;
+    }
+    h1 { margin-bottom: 2rem; }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #c4b5fd;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.3);
+      color: white;
+      font-size: 1rem;
+    }
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background: #a78bfa;
+    }
+    pre {
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+=======
+  <title>Lettore Manga</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: white;
+    }
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 0.8rem 1.5rem;
+      background: rgba(10, 10, 20, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 1000;
+      border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+      flex-wrap: wrap;
+    }
+    .back-btn {
+      background: rgba(139, 92, 246, 0.3);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-decoration: none;
+      display: inline-block;
+      transition: 0.2s;
+    }
+    .back-btn:hover {
+      background: rgba(139, 92, 246, 0.6);
+    }
+    .manga-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+    }
+    .selector-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .selector-label {
+      color: #c4b5fd;
+      font-size: 0.9rem;
+    }
+    .chapter-select {
+      padding: 0.5rem 1rem;
+      background: #1a1a2e;
+      color: white;
+      border: 1px solid #6b21a8;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 150px;
+    }
+    .type-badge {
+      background: rgba(107, 33, 168, 0.3);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #c4b5fd;
+    }
+    .pages-container {
+      margin-top: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem 0;
+    }
+    .page-wrapper {
+      margin-bottom: 2px;
+      background: #000;
+      display: flex;
+      justify-content: center;
+    }
+    .page-wrapper img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    }
+    .bottom-controls {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 1rem;
+      background: rgba(10, 10, 20, 0.95);
+      padding: 0.8rem 1.5rem;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      z-index: 1000;
+    }
+    .nav-btn {
+      background: #6b21a8;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.5rem;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: 0.2s;
+      min-width: 90px;
+    }
+    .nav-btn:hover {
+      background: #8b5cf6;
+      transform: scale(1.05);
+    }
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .page-indicator {
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      font-size: 1rem;
+      color: #c4b5fd;
+    }
+    .loading, .error, .empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      font-size: 1.1rem;
+    }
+    .loading { color: #c4b5fd; }
+    .error { color: #ef4444; }
+    .empty { color: #9ca3af; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #8b5cf6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (max-width: 768px) {
+      .top-bar { padding: 0.6rem 1rem; }
+      .selector-container { width: 100%; margin-top: 0.3rem; }
+      .chapter-select { flex: 1; }
+      .bottom-controls { bottom: 1rem; padding: 0.6rem 1rem; }
+      .nav-btn { padding: 0.5rem 1rem; min-width: 70px; font-size: 0.9rem; }
+>>>>>>> 51a22d68196bd04e041b3149980bceaf77dff7ee
+    }
+  </style>
+</head>
+<body>
+<<<<<<< HEAD
+  <div class="container">
+    <h1>➕ Aggiungi Nuovo Manga</h1>
+    
+    <div class="form-group">
+      <label>ID (nome cartella):</label>
+      <input type="text" id="mangaId" placeholder="es: naruto, one-piece">
+    </div>
+    
+    <div class="form-group">
+      <label>Titolo:</label>
+      <input type="text" id="mangaTitle" placeholder="es: Naruto">
+    </div>
+    
+    <div class="form-group">
+      <label>Copertina (percorso):</label>
+      <input type="text" id="mangaCover" placeholder="es: manga/naruto/cover.jpg">
+    </div>
+    
+    <div class="form-group">
+      <label>Ultimo capitolo/volume:</label>
+      <input type="text" id="mangaLatest" placeholder="es: Volume 72">
+    </div>
+    
+    <div class="form-group">
+      <label>Tipo:</label>
+      <select id="mangaType">
+        <option value="📚 Volumi">Volumi</option>
+        <option value="📖 Capitoli">Capitoli</option>
+      </select>
+    </div>
+    
+    <button onclick="generateJSON()">Genera JSON</button>
+    
+    <h3 style="margin-top: 2rem;">Codice da aggiungere a manga.json:</h3>
+    <pre id="jsonOutput"></pre>
+  </div>
+
+  <script>
+    function generateJSON() {
+      const manga = {
+        id: document.getElementById('mangaId').value,
+        title: document.getElementById('mangaTitle').value,
+        cover: document.getElementById('mangaCover').value,
+        latest: document.getElementById('mangaLatest').value,
+        type: document.getElementById('mangaType').value
+      };
+      
+      const json = JSON.stringify(manga, null, 2);
+      document.getElementById('jsonOutput').textContent = json;
+    }
+  </script>
+</body>
+</html>
+=======
+
+<div class="top-bar">
+  <a href="index.html" class="back-btn">← Libreria</a>
+  <span class="manga-title" id="mangaTitle">Caricamento...</span>
+  <span class="type-badge" id="typeBadge"></span>
+  <div class="selector-container">
+    <span class="selector-label" id="selectorLabel">Seleziona:</span>
+    <select class="chapter-select" id="chapterSelect" disabled>
+      <option>Caricamento...</option>
+    </select>
+  </div>
+</div>
+
+<div class="pages-container" id="pagesContainer">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div>Caricamento pagine...</div>
+  </div>
+</div>
+
+<div class="bottom-controls">
+  <button class="nav-btn" id="prevBtn" onclick="prevPage()">← PREV</button>
+  <span class="page-indicator" id="pageIndicator">0 / 0</span>
+  <button class="nav-btn" id="nextBtn" onclick="nextPage()">NEXT →</button>
+</div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const mangaId = urlParams.get('manga');
+  const mangaTitle = decodeURIComponent(urlParams.get('title') || 'Manga');
+  
+  document.getElementById('mangaTitle').textContent = mangaTitle;
+  document.title = `${mangaTitle} - KitsuManga`;
+
+  let contentType = null;
+  let currentNumber = 1;
+  let currentPage = 0;
+  let images = [];
+
+  const container = document.getElementById('pagesContainer');
+  const chapterSelect = document.getElementById('chapterSelect');
+  const typeBadge = document.getElementById('typeBadge');
+  const selectorLabel = document.getElementById('selectorLabel');
+  const pageIndicator = document.getElementById('pageIndicator');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  async function detectContentType() {
+    try {
+      const res = await fetch(`manga/${mangaId}/volumes/1/001.jpg`, { method: 'HEAD' });
+      if (res.ok) {
+        contentType = 'volumes';
+        typeBadge.textContent = '📚 VOLUMI';
+        selectorLabel.textContent = 'Volume:';
+        return 'volumes';
+      }
+    } catch(e) {}
+    
+    try {
+      const res = await fetch(`manga/${mangaId}/chapters/1/01.jpg`, { method: 'HEAD' });
+      if (res.ok) {
+        contentType = 'chapters';
+        typeBadge.textContent = '📖 CAPITOLI';
+        selectorLabel.textContent = 'Capitolo:';
+        return 'chapters';
+      }
+    } catch(e) {}
+    
+    typeBadge.textContent = '❌ VUOTO';
+    return null;
+  }
+
+  async function loadAvailableNumbers() {
+    if (!contentType) {
+      chapterSelect.innerHTML = '<option>Nessun contenuto</option>';
+      return [];
+    }
+    
+    chapterSelect.innerHTML = '<option>Ricerca...</option>';
+    const numbers = [];
+    let num = 1;
+    
+    while (num < 500) {
+      try {
+        const res = await fetch(`manga/${mangaId}/${contentType}/${num}/001.jpg`, { method: 'HEAD' });
+        if (res.ok) {
+          numbers.push(num);
+          num++;
+        } else {
+          break;
+        }
+      } catch(e) {
+        break;
+      }
+    }
+    
+    if (numbers.length === 0) {
+      chapterSelect.innerHTML = '<option>Nessuno trovato</option>';
+      return [];
+    }
+    
+    const label = contentType === 'volumes' ? 'Volume' : 'Capitolo';
+    chapterSelect.innerHTML = numbers.map(n => `<option value="${n}">${label} ${n}</option>`).join('');
+    chapterSelect.disabled = false;
+    currentNumber = numbers[numbers.length - 1];
+    chapterSelect.value = currentNumber;
+    
+    chapterSelect.onchange = async (e) => {
+      currentNumber = parseInt(e.target.value);
+      await loadPages();
+    };
+    
+    return numbers;
+  }
+
+  async function loadPages() {
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Caricamento pagine...</div></div>';
+    
+    images = [];
+    let pageNum = 1;
+    
+    while (pageNum < 500) {
+      const path = `manga/${mangaId}/${contentType}/${currentNumber}/${String(pageNum).padStart(3, '0')}.jpg`;
+      try {
+        const res = await fetch(path, { method: 'HEAD' });
+        if (res.ok) {
+          images.push(path);
+          pageNum++;
+        } else {
+          break;
+        }
+      } catch(e) {
+        break;
+      }
+    }
+    
+    currentPage = 0;
+    
+    if (images.length === 0) {
+      container.innerHTML = '<div class="empty">😕 Nessuna pagina trovata</div>';
+      updateUI();
+      return;
+    }
+    
+    renderAllPages();
+    updateUI();
+    window.scrollTo({ top: 70, behavior: 'smooth' });
+  }
+
+  function renderAllPages() {
+    container.innerHTML = '';
+    
+    images.forEach((imgPath, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'page-wrapper';
+      wrapper.id = `page-${index}`;
+      
+      const img = document.createElement('img');
+      img.src = imgPath;
+      img.alt = `Pagina ${index + 1}`;
+      img.loading = 'lazy';
+      
+      img.onerror = () => {
+        img.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='1200'%3E%3Crect width='800' height='1200' fill='%231a1a2e'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' fill='%23ef4444' font-size='18'%3EErrore%3C/text%3E%3C/svg%3E`;
+      };
+      
+      wrapper.appendChild(img);
+      container.appendChild(wrapper);
+    });
+  }
+
+  function scrollToPage(pageIndex) {
+    const pageElement = document.getElementById(`page-${pageIndex}`);
+    if (pageElement) {
+      pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    updateUI();
+  }
+
+  function nextPage() {
+    if (currentPage < images.length - 1) {
+      currentPage++;
+      scrollToPage(currentPage);
+    }
+  }
+
+  function prevPage() {
+    if (currentPage > 0) {
+      currentPage--;
+      scrollToPage(currentPage);
+    }
+  }
+
+  function updateUI() {
+    pageIndicator.textContent = `${currentPage + 1} / ${images.length}`;
+    prevBtn.disabled = currentPage === 0;
+    nextBtn.disabled = currentPage === images.length - 1;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); nextPage(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevPage(); }
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        const match = id.match(/page-(\d+)/);
+        if (match) {
+          currentPage = parseInt(match[1]);
+          updateUI();
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+
+  async function init() {
+    if (!mangaId) {
+      container.innerHTML = '<div class="error">❌ Nessun manga specificato</div>';
+      return;
+    }
+    
+    await detectContentType();
+    
+    if (!contentType) {
+      container.innerHTML = '<div class="empty">📭 Nessun contenuto trovato</div>';
+      return;
+    }
+    
+    const numbers = await loadAvailableNumbers();
+    
+    if (numbers.length > 0) {
+      await loadPages();
+      document.querySelectorAll('.page-wrapper').forEach(w => observer.observe(w));
+    } else {
+      container.innerHTML = '<div class="empty">📭 Nessun volume/capitolo trovato</div>';
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
+>>>>>>> 51a22d68196bd04e041b3149980bceaf77dff7ee

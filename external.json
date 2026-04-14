@@ -1,0 +1,18 @@
+[
+  {
+    "id": "one-piece",
+    "title": "One Piece",
+    "cover":"https://cdn.mangaworld.mx/mangas/5fa0c9e2c9f2201ee55d3bd4.jpg?1775745199597",
+    "latest": "Capitolo 1179",
+    "author": "Eiichiro Oda",
+    "externalUrl": "https://www.mangaworld.mx/manga/1708/one-piece"
+  },
+  {
+    "id": "chainsaw-man",
+    "title": "Chainsaw Man",
+    "cover": "https://placehold.co/300x400/1a1a2e/a78bfa?text=Chainsaw+Man",
+    "latest": "Capitolo 170",
+    "author": "Tatsuki Fujimoto",
+    "externalUrl": "https://mangaplus.shueisha.co.jp/titles/100037"
+  }
+]

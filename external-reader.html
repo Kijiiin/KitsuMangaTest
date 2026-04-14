@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Lettore Manga Esterno</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: white;
+      min-height: 100vh;
+    }
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 0.8rem 1.5rem;
+      background: rgba(10, 10, 20, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 1000;
+      border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+      flex-wrap: wrap;
+    }
+    .back-btn {
+      background: rgba(139, 92, 246, 0.3);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .back-btn:hover {
+      background: rgba(139, 92, 246, 0.6);
+    }
+    .manga-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+    }
+    .open-btn {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 0.5rem 1.2rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .open-btn:hover {
+      background: #a78bfa;
+      transform: scale(1.05);
+    }
+    .content {
+      padding-top: 80px;
+      padding-bottom: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .info-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 25px;
+      margin: 20px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    .info-card h2 {
+      color: #c4b5fd;
+      margin-bottom: 15px;
+    }
+    .info-card p {
+      margin-bottom: 20px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    .warning {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px;
+      font-size: 0.9rem;
+    }
+    .external-links {
+      margin: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .external-link-btn {
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid #8b5cf6;
+      padding: 15px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+      text-decoration: none;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+    .external-link-btn:hover {
+      background: rgba(139, 92, 246, 0.4);
+      transform: translateX(5px);
+    }
+    .link-icon {
+      font-size: 1.5rem;
+    }
+    .link-text {
+      flex: 1;
+      text-align: left;
+    }
+    .link-url {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      word-break: break-all;
+    }
+    .arrow {
+      font-size: 1.2rem;
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 50px;
+      color: #c4b5fd;
+    }
+    .error { color: #ef4444; }
+    
+    @media (max-width: 768px) {
+      .top-bar { padding: 0.6rem 1rem; }
+      .manga-title { font-size: 0.9rem; }
+      .open-btn, .back-btn { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+      .external-link-btn { flex-direction: column; text-align: center; }
+      .arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="javascript:history.back()" class="back-btn">← Libreria</a>
+  <span class="manga-title" id="mangaTitle">Caricamento...</span>
+  <a href="#" class="open-btn" id="openNewTabBtn" target="_blank">🔗 Apri in nuova scheda</a>
+</div>
+
+<div class="content" id="content">
+  <div class="loading" id="loading">🌐 Caricamento informazioni...</div>
+</div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const externalUrl = decodeURIComponent(urlParams.get('url') || '');
+  const mangaTitle = decodeURIComponent(urlParams.get('title') || 'Manga Esterno');
+  
+  document.getElementById('mangaTitle').textContent = mangaTitle;
+  document.title = `${mangaTitle} - KitsuManga`;
+  
+  const openNewTabBtn = document.getElementById('openNewTabBtn');
+  const content = document.getElementById('content');
+  const loading = document.getElementById('loading');
+  
+  function isIframeBlocked(url) {
+    // Lista di domini noti che bloccano gli iframe
+    const blockedDomains = [
+      'mangaworld',
+      'mangaplus',
+      'viz.com',
+      'comick.io',
+      'mangadex',
+      'chapmanganato',
+      'manganelo'
+    ];
+    return blockedDomains.some(domain => url.toLowerCase().includes(domain));
+  }
+  
+  if (externalUrl) {
+    openNewTabBtn.href = externalUrl;
+    openNewTabBtn.target = '_blank';
+    
+    const isBlocked = isIframeBlocked(externalUrl);
+    const urlObj = new URL(externalUrl);
+    const domain = urlObj.hostname;
+    
+    if (isBlocked) {
+      content.innerHTML = `
+        <div class="info-card">
+          <h2>🔒 ${mangaTitle}</h2>
+          <p>Questo sito web (<strong>${domain}</strong>) non permette di essere visualizzato all'interno di un iframe per motivi di sicurezza.</p>
+          <p>Puoi comunque leggere il manga cliccando sul pulsante qui sotto o sul pulsante "Apri in nuova scheda" in alto.</p>
+        </div>
+        
+        <div class="warning">
+          ⚠️ <strong>Nota:</strong> Alcuni siti potrebbero richiedere la disattivazione dell'adblock o potrebbero contenere pubblicità.
+        </div>
+        
+        <div class="external-links">
+          <a href="${externalUrl}" target="_blank" class="external-link-btn">
+            <span class="link-icon">📖</span>
+            <div class="link-text">
+              <strong>Apri ${mangaTitle} su ${domain}</strong>
+              <div class="link-url">${externalUrl}</div>
+            </div>
+            <span class="arrow">→</span>
+          </a>
+        </div>
+      `;
+    } else {
+      // Prova a caricare in iframe
+      content.innerHTML = `
+        <div class="info-card">
+          <h2>📖 ${mangaTitle}</h2>
+          <p>Tentativo di caricamento del manga in lettore integrato...</p>
+        </div>
+        <iframe src="${externalUrl}" style="width:100%; height:70vh; border:none; border-radius:10px;"></iframe>
+        <div class="warning" style="margin-top:15px;">
+          💡 Se il manga non viene visualizzato correttamente, utilizza il pulsante "Apri in nuova scheda".
+        </div>
+      `;
+      
+      // Timeout per iframe bloccato
+      setTimeout(() => {
+        const iframe = document.querySelector('iframe');
+        if (iframe && !iframe.src) {
+          content.innerHTML = `
+            <div class="info-card">
+              <h2>🔒 ${mangaTitle}</h2>
+              <p>Il sito <strong>${domain}</strong> ha bloccato il caricamento in iframe.</p>
+              <p>Apri il manga in una nuova scheda per leggerlo.</p>
+            </div>
+            <div class="external-links">
+              <a href="${externalUrl}" target="_blank" class="external-link-btn">
+                <span class="link-icon">📖</span>
+                <div class="link-text">
+                  <strong>Apri ${mangaTitle} su ${domain}</strong>
+                  <div class="link-url">${externalUrl}</div>
+                </div>
+                <span class="arrow">→</span>
+              </a>
+            </div>
+          `;
+        }
+      }, 3000);
+    }
+    
+    loading.style.display = 'none';
+  } else {
+    content.innerHTML = '<div class="error">❌ Nessun URL specificato per questo manga esterno</div>';
+    loading.style.display = 'none';
+  }
+</script>
+
+</body>
+</html>
