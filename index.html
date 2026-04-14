@@ -1645,7 +1645,7 @@
 
   async function loadLocalMangas() {
     try {
-      const res = await fetch(`../data/manga.json?t=${Date.now()}`);
+      const res = await fetch(`data/manga.json?t=${Date.now()}`);
       const data = await res.json();
       mangasLocal = data.map(m => ({ ...m, type: 'local' }));
     } catch (e) {
