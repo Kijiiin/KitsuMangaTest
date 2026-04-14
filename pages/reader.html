@@ -5,7 +5,351 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Lettore Manga</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net/gh">
-  <link rel="stylesheet" href="../css/reader.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: white;
+      overflow: hidden;
+      height: 100vh;
+      touch-action: pan-y pinch-zoom;
+    }
+    
+    body:fullscreen { background: #000; }
+    
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 0.8rem 1.5rem;
+      background: rgba(10, 10, 20, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 1000;
+      border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+      flex-wrap: wrap;
+      transition: transform 0.3s ease;
+    }
+    .top-bar.hide { transform: translateY(-100%); }
+    
+    @media (max-width: 768px) {
+      .top-bar { display: none !important; }
+    }
+    
+    body:fullscreen .top-bar,
+    body:-webkit-full-screen .top-bar { display: none !important; }
+    
+    .back-btn {
+      background: rgba(139, 92, 246, 0.3);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+    .manga-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .selector-container { display: flex; align-items: center; gap: 0.5rem; }
+    .selector-label { color: #c4b5fd; font-size: 0.9rem; }
+    .chapter-select {
+      padding: 0.5rem 1rem;
+      background: #1a1a2e;
+      color: white;
+      border: 1px solid #6b21a8;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 150px;
+    }
+    .type-badge {
+      background: rgba(107, 33, 168, 0.3);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #c4b5fd;
+    }
+    
+    .fullscreen-btn {
+      background: rgba(139, 92, 246, 0.3);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: 0.2s;
+    }
+    .fullscreen-btn:hover {
+      background: rgba(139, 92, 246, 0.6);
+    }
+    
+    .reader-container {
+      height: 100vh;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .reader-wrapper {
+      display: flex;
+      flex-direction: row;
+      height: 100%;
+      align-items: center;
+      transition: transform 0.2s ease-out;
+      will-change: transform;
+      cursor: grab;
+    }
+    .reader-wrapper:active { cursor: grabbing; }
+    
+    .page {
+      flex: 0 0 100%;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      position: relative;
+      pointer-events: none;
+    }
+    
+    .page img {
+      max-height: 100vh;
+      max-width: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      cursor: grab;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: auto;
+      transform-origin: center center;
+      will-change: transform;
+    }
+    .page img:active { cursor: grabbing; }
+    .page img.zoomed { cursor: move; }
+    .page img.loaded { opacity: 1; }
+    
+    .desktop-hud {
+      position: fixed;
+      bottom: 50%;
+      transform: translateY(50%);
+      right: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: rgba(10, 10, 20, 0.85);
+      padding: 0.8rem;
+      border-radius: 40px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      z-index: 1000;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .desktop-hud.hide {
+      opacity: 0;
+      transform: translateY(50%) translateX(100%);
+      pointer-events: none;
+    }
+    
+    @media (max-width: 768px) {
+      .desktop-hud { display: none !important; }
+    }
+    
+    body:fullscreen .desktop-hud,
+    body:-webkit-full-screen .desktop-hud {
+      opacity: 1 !important;
+      transform: translateY(50%) !important;
+      pointer-events: auto !important;
+    }
+    
+    .nav-btn {
+      background: #6b21a8;
+      color: white;
+      border: none;
+      padding: 0.8rem 1rem;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: 0.2s;
+      min-width: 70px;
+    }
+    .nav-btn:hover { background: #8b5cf6; }
+    .page-indicator {
+      text-align: center;
+      padding: 0.5rem;
+      font-size: 0.9rem;
+      color: #c4b5fd;
+      font-weight: 600;
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px;
+    }
+    
+    .fullscreen-exit-btn {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      z-index: 1001;
+      display: none;
+    }
+    
+    body:fullscreen .fullscreen-exit-btn,
+    body:-webkit-full-screen .fullscreen-exit-btn { display: flex !important; }
+    
+    .mobile-hud {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(10, 10, 20, 0.85);
+      padding: 0.6rem 1rem;
+      border-radius: 40px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      z-index: 1000;
+    }
+    
+    @media (min-width: 769px) {
+      .mobile-hud { display: none !important; }
+    }
+    
+    body:fullscreen .mobile-hud,
+    body:-webkit-full-screen .mobile-hud {
+      display: flex !important;
+      bottom: 20px;
+    }
+    
+    .mobile-nav-btn {
+      background: #6b21a8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .mobile-nav-btn:active { background: #8b5cf6; }
+    .mobile-page-indicator {
+      font-size: 0.9rem;
+      color: #c4b5fd;
+      font-weight: 600;
+      background: rgba(0,0,0,0.5);
+      padding: 6px 12px;
+      border-radius: 30px;
+    }
+    
+    .fullscreen-btn-mobile {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(139, 92, 246, 0.9);
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.3rem;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @media (min-width: 769px) {
+      .fullscreen-btn-mobile { display: none !important; }
+    }
+    
+    body:fullscreen .exit-fullscreen-mobile,
+    body:-webkit-full-screen .exit-fullscreen-mobile { display: flex !important; }
+    
+    .exit-fullscreen-mobile {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2rem;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .initial-loading, .error, .empty {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      padding: 2rem;
+      background: rgba(0,0,0,0.8);
+      border-radius: 20px;
+      z-index: 2000;
+    }
+    .initial-loading { color: #c4b5fd; }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #8b5cf6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .toast {
+      position: fixed;
+      bottom: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(139, 92, 246, 0.9);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      z-index: 2000;
+      animation: toastFade 2s ease forwards;
+      pointer-events: none;
+    }
+    @keyframes toastFade {
+      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      85% { opacity: 1; }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); visibility: hidden; }
+    }
+  </style>
 </head>
 <body>
 
@@ -43,6 +387,593 @@
   <div class="reader-wrapper" id="readerWrapper"></div>
 </div>
 
-<script src="../js/reader.js"></script>
+<script>
+  // ============================================================
+  // CONFIGURAZIONE IMAGEKIT
+  // ============================================================
+  const IMAGEKIT_BASE = 'https://cdn.jsdelivr.net/gh/Kijiiin/KitsuMangaUpload/manga';
+  const IMAGEKIT_OPTIONS = 'tr=w-1200,q-80,f-auto';
+  
+  // ============================================================
+  // GESTIONE PROGRESSO LETTURA
+  // ============================================================
+  const PROGRESS_KEY = 'kitsumanga_reading_progress';
+  
+  function saveReadingProgress() {
+    if (!mangaId || !contentType) return;
+    
+    const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+    progress[mangaId] = {
+      number: currentNumber,
+      type: contentType,
+      page: currentPageIndex,
+      totalPages: totalPages,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  }
+  
+  function getSavedPage() {
+    const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+    const saved = progress[mangaId];
+    
+    if (saved && saved.number === currentNumber && saved.page !== undefined) {
+      return Math.min(saved.page, totalPages - 1);
+    }
+    return 0;
+  }
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const mangaId = urlParams.get('manga');
+  const mangaTitle = decodeURIComponent(urlParams.get('title') || 'Manga');
+  const preloadNumber = urlParams.get('number');
+  const preloadType = urlParams.get('type');
+  
+  document.getElementById('mangaTitle').textContent = mangaTitle;
+  document.title = `${mangaTitle} - KitsuManga`;
+
+  let contentType = preloadType || null;
+  let currentNumber = preloadNumber ? parseInt(preloadNumber) : 1;
+  let totalPages = 0;
+  let allNumbers = [];
+  let currentPageIndex = 0;
+  let isLoadingChapter = false;
+  let isFullscreenActive = false;
+  let currentBasePath = '';
+  let currentPageFiles = [];
+  let hasRestoredPage = false;
+
+  // Variabili per zoom
+  let currentZoom = 1;
+  let isZoomed = false;
+  let panX = 0, panY = 0;
+  let startPanX = 0, startPanY = 0;
+  let isPanning = false;
+  let initialDistance = 0;
+  let initialZoom = 1;
+  let currentZoomedImg = null;
+
+  let startX = 0, currentX = 0, isDragging = false, dragStartTime = 0;
+  const SWIPE_THRESHOLD = 50, SWIPE_MAX_TIME = 300;
+
+  const topBar = document.getElementById('topBar');
+  const desktopHud = document.getElementById('desktopHud');
+  const readerContainer = document.getElementById('readerContainer');
+  const readerWrapper = document.getElementById('readerWrapper');
+  const chapterSelect = document.getElementById('chapterSelect');
+  const typeBadge = document.getElementById('typeBadge');
+  const selectorLabel = document.getElementById('selectorLabel');
+  const pageIndicator = document.getElementById('pageIndicator');
+  const mobilePageIndicator = document.getElementById('mobilePageIndicator');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const mobilePrevBtn = document.getElementById('mobilePrevBtn');
+  const mobileNextBtn = document.getElementById('mobileNextBtn');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
+  const fullscreenExitBtn = document.getElementById('fullscreenExitBtn');
+  const exitFullscreenMobile = document.getElementById('exitFullscreenMobile');
+
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function enterFullscreen() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+  }
+
+  function exitFullscreen() {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
+
+  function toggleFullscreen() {
+    isFullscreen() ? exitFullscreen() : enterFullscreen();
+  }
+
+  function updateFullscreenState() {
+    const fs = isFullscreen();
+    isFullscreenActive = fs;
+    
+    if (fs) {
+      if (window.innerWidth > 768) {
+        topBar.style.display = 'none';
+        fullscreenExitBtn.style.display = 'flex';
+      } else {
+        fullscreenBtnMobile.style.display = 'none';
+        exitFullscreenMobile.style.display = 'flex';
+      }
+    } else {
+      if (window.innerWidth > 768) {
+        topBar.style.display = '';
+        desktopHud.style.display = '';
+        fullscreenExitBtn.style.display = 'none';
+      } else {
+        fullscreenBtnMobile.style.display = 'flex';
+        exitFullscreenMobile.style.display = 'none';
+      }
+    }
+  }
+
+  document.addEventListener('fullscreenchange', updateFullscreenState);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenState);
+
+  fullscreenBtn.addEventListener('click', toggleFullscreen);
+  fullscreenBtnMobile.addEventListener('click', enterFullscreen);
+  fullscreenExitBtn.addEventListener('click', exitFullscreen);
+  exitFullscreenMobile.addEventListener('click', exitFullscreen);
+
+  function showToast(message) {
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) existingToast.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  }
+
+  // ============================================================
+  // ZOOM E PAN
+  // ============================================================
+  function getDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function resetZoom(img) {
+    currentZoom = 1;
+    isZoomed = false;
+    panX = 0;
+    panY = 0;
+    img.style.transform = '';
+    img.classList.remove('zoomed');
+    currentZoomedImg = null;
+  }
+
+  function applyTransform(img) {
+    if (isZoomed) {
+      img.style.transform = `scale(${currentZoom}) translate(${panX}px, ${panY}px)`;
+    } else {
+      img.style.transform = '';
+    }
+  }
+
+  function handleTouchStart(e) {
+    const img = e.target;
+    if (img.tagName !== 'IMG') return;
+    
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      initialDistance = getDistance(e.touches);
+      initialZoom = currentZoom;
+      currentZoomedImg = img;
+    } else if (e.touches.length === 1 && isZoomed) {
+      e.preventDefault();
+      isPanning = true;
+      startPanX = e.touches[0].clientX - panX;
+      startPanY = e.touches[0].clientY - panY;
+    }
+  }
+
+  function handleTouchMove(e) {
+    const img = e.target;
+    if (img.tagName !== 'IMG') return;
+    
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const currentDistance = getDistance(e.touches);
+      const scale = currentDistance / initialDistance;
+      currentZoom = Math.min(Math.max(initialZoom * scale, 1), 4);
+      isZoomed = currentZoom > 1;
+      applyTransform(img);
+      img.classList.toggle('zoomed', isZoomed);
+    } else if (e.touches.length === 1 && isPanning && isZoomed) {
+      e.preventDefault();
+      panX = e.touches[0].clientX - startPanX;
+      panY = e.touches[0].clientY - startPanY;
+      applyTransform(img);
+    }
+  }
+
+  function handleTouchEnd(e) {
+    if (e.touches.length < 2) {
+      initialDistance = 0;
+    }
+    if (e.touches.length === 0) {
+      isPanning = false;
+    }
+  }
+
+  function handleWheel(e) {
+    e.preventDefault();
+    const img = e.target;
+    if (img.tagName !== 'IMG') return;
+    
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    currentZoom = Math.min(Math.max(currentZoom * delta, 1), 4);
+    isZoomed = currentZoom > 1;
+    applyTransform(img);
+    img.classList.toggle('zoomed', isZoomed);
+    currentZoomedImg = img;
+  }
+
+  function handleDoubleClick(e) {
+    const img = e.target;
+    if (img.tagName !== 'IMG') return;
+    
+    if (isZoomed) {
+      resetZoom(img);
+    } else {
+      currentZoom = 2;
+      isZoomed = true;
+      applyTransform(img);
+      img.classList.add('zoomed');
+      currentZoomedImg = img;
+    }
+  }
+
+  function handleMouseDown(e) {
+    const img = e.target;
+    if (img.tagName !== 'IMG' || !isZoomed) return;
+    
+    e.preventDefault();
+    isPanning = true;
+    startPanX = e.clientX - panX;
+    startPanY = e.clientY - panY;
+    
+    function onMouseMove(e) {
+      if (!isPanning) return;
+      panX = e.clientX - startPanX;
+      panY = e.clientY - startPanY;
+      applyTransform(img);
+    }
+    
+    function onMouseUp() {
+      isPanning = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+    
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function enableZoom(img) {
+    img.removeEventListener('touchstart', handleTouchStart);
+    img.removeEventListener('touchmove', handleTouchMove);
+    img.removeEventListener('touchend', handleTouchEnd);
+    img.removeEventListener('wheel', handleWheel);
+    img.removeEventListener('dblclick', handleDoubleClick);
+    img.removeEventListener('mousedown', handleMouseDown);
+    
+    img.addEventListener('touchstart', handleTouchStart, { passive: false });
+    img.addEventListener('touchmove', handleTouchMove, { passive: false });
+    img.addEventListener('touchend', handleTouchEnd);
+    img.addEventListener('wheel', handleWheel, { passive: false });
+    img.addEventListener('dblclick', handleDoubleClick);
+    img.addEventListener('mousedown', handleMouseDown);
+    
+    resetZoom(img);
+  }
+
+  // ============================================================
+  // SWIPE
+  // ============================================================
+  function initSwipe() {
+    const wrapper = readerWrapper;
+    
+    wrapper.addEventListener('touchstart', (e) => {
+      if (isZoomed) return;
+      startX = e.touches[0].clientX;
+      currentX = startX;
+      isDragging = true;
+      dragStartTime = Date.now();
+      wrapper.style.transition = 'none';
+    });
+    
+    wrapper.addEventListener('touchmove', (e) => {
+      if (!isDragging || isZoomed) return;
+      e.preventDefault();
+      currentX = e.touches[0].clientX;
+      const deltaX = currentX - startX;
+      const translateX = -currentPageIndex * readerContainer.clientWidth + deltaX;
+      wrapper.style.transform = `translateX(${translateX}px)`;
+    });
+    
+    wrapper.addEventListener('touchend', (e) => {
+      if (!isDragging || isZoomed) return;
+      isDragging = false;
+      
+      const deltaX = currentX - startX;
+      const deltaTime = Date.now() - dragStartTime;
+      const containerWidth = readerContainer.clientWidth;
+      
+      let shouldChange = false, goNext = false;
+      
+      if (deltaTime < SWIPE_MAX_TIME && Math.abs(deltaX) > 30) {
+        shouldChange = true; goNext = deltaX < 0;
+      } else if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+        shouldChange = true; goNext = deltaX < 0;
+      }
+      
+      if (shouldChange) {
+        if (goNext && currentPageIndex < totalPages - 1) goToPage(currentPageIndex + 1);
+        else if (!goNext && currentPageIndex > 0) goToPage(currentPageIndex - 1);
+        else if (goNext) nextChapter();
+        else prevChapter();
+      } else {
+        wrapper.style.transition = 'transform 0.2s ease-out';
+        wrapper.style.transform = `translateX(${-currentPageIndex * containerWidth}px)`;
+      }
+      
+      startX = currentX = 0;
+    });
+  }
+  
+  function goToPage(index) {
+    if (index < 0 || index >= totalPages) return;
+    currentPageIndex = index;
+    readerWrapper.style.transition = 'transform 0.2s ease-out';
+    readerWrapper.style.transform = `translateX(${-currentPageIndex * readerContainer.clientWidth}px)`;
+    updateUI();
+    saveReadingProgress();
+  }
+  
+  function updateWrapperPosition() {
+    readerWrapper.style.transition = 'none';
+    readerWrapper.style.transform = `translateX(${-currentPageIndex * readerContainer.clientWidth}px)`;
+  }
+
+  async function loadManifest() {
+    try {
+      const res = await fetch(`${IMAGEKIT_BASE}/${mangaId}/manifest.json?t=${Date.now()}`);
+      if (res.ok) {
+        const manifest = await res.json();
+        contentType = manifest.type;
+        allNumbers = manifest.numbers;
+        
+        typeBadge.textContent = contentType === 'volumes' ? '📚 VOLUMI' : '📖 CAPITOLI';
+        selectorLabel.textContent = contentType === 'volumes' ? 'Volume:' : 'Capitolo:';
+        
+        const label = contentType === 'volumes' ? 'Volume' : 'Capitolo';
+        chapterSelect.innerHTML = allNumbers.map(n => `<option value="${n}" ${n == currentNumber ? 'selected' : ''}>${label} ${n}</option>`).join('');
+        chapterSelect.disabled = false;
+        
+        chapterSelect.onchange = async (e) => {
+          if (isLoadingChapter) return;
+          currentNumber = parseInt(e.target.value);
+          hasRestoredPage = false;
+          await loadChapter();
+        };
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  }
+
+  async function changeChapter(newNumber) {
+    if (isLoadingChapter || !allNumbers.includes(newNumber)) return false;
+    isLoadingChapter = true;
+    currentNumber = newNumber;
+    chapterSelect.value = currentNumber;
+    hasRestoredPage = false;
+    await loadChapter();
+    isLoadingChapter = false;
+    return true;
+  }
+
+  async function nextChapter() {
+    const idx = allNumbers.indexOf(currentNumber);
+    if (idx < allNumbers.length - 1) {
+      showToast(`${contentType === 'volumes' ? 'Volume' : 'Capitolo'} ${allNumbers[idx + 1]}`);
+      await changeChapter(allNumbers[idx + 1]);
+    } else {
+      showToast(`🏁 Ultimo`);
+    }
+  }
+
+  async function prevChapter() {
+    const idx = allNumbers.indexOf(currentNumber);
+    if (idx > 0) {
+      showToast(`${contentType === 'volumes' ? 'Volume' : 'Capitolo'} ${allNumbers[idx - 1]}`);
+      await changeChapter(allNumbers[idx - 1]);
+    } else {
+      showToast(`🏁 Primo`);
+    }
+  }
+
+  async function loadChapter() {
+    readerWrapper.innerHTML = '<div class="initial-loading"><div class="spinner"></div><div>Caricamento pagine...</div></div>';
+    
+    currentBasePath = `${IMAGEKIT_BASE}/${mangaId}/${currentNumber}`;
+    
+    let pageFiles = [];
+    try {
+      const res = await fetch(`${currentBasePath}/manifest.json?t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          pageFiles = data;
+        } else if (data.pages && Array.isArray(data.pages)) {
+          pageFiles = data.pages.map(p => typeof p === 'string' ? p : p.file);
+        }
+      }
+    } catch(e) {}
+    
+    if (pageFiles.length === 0) {
+      let pageCount = 0;
+      let found = true;
+      while (found && pageCount < 200) {
+        pageCount++;
+        try {
+          const testRes = await fetch(`${currentBasePath}/${pageCount}.jpg`, { method: 'HEAD' });
+          if (!testRes.ok) {
+            found = false;
+            pageCount--;
+          }
+        } catch(e) {
+          found = false;
+          pageCount--;
+        }
+      }
+      
+      if (pageCount === 0) {
+        readerWrapper.innerHTML = '<div class="empty">😕 Nessuna pagina trovata</div>';
+        updateUI();
+        return;
+      }
+      
+      for (let i = 1; i <= pageCount; i++) {
+        pageFiles.push(`${i}.jpg`);
+      }
+    }
+    
+    totalPages = pageFiles.length;
+    currentPageFiles = pageFiles;
+    
+    renderPages(currentBasePath, pageFiles);
+  }
+
+  function renderPages(basePath, pageFiles) {
+    readerWrapper.innerHTML = '';
+    readerWrapper.style.transform = 'translateX(0px)';
+    
+    for (let i = 0; i < pageFiles.length; i++) {
+      const pageDiv = document.createElement('div');
+      pageDiv.className = 'page';
+      
+      const img = document.createElement('img');
+      img.src = `${basePath}/${pageFiles[i]}?${IMAGEKIT_OPTIONS}`;
+      img.alt = `Pagina ${i + 1}`;
+      img.loading = i < 3 ? 'eager' : 'lazy';
+      img.fetchpriority = i < 3 ? 'high' : 'low';
+      
+      img.onload = () => img.classList.add('loaded');
+      
+      img.onerror = () => {
+        img.src = `${basePath}/${pageFiles[i]}`;
+      };
+      
+      enableZoom(img);
+      
+      pageDiv.appendChild(img);
+      readerWrapper.appendChild(pageDiv);
+    }
+    
+    let startPage = 0;
+    
+    if (!hasRestoredPage) {
+      const savedPage = getSavedPage();
+      if (savedPage > 0) {
+        startPage = savedPage;
+        hasRestoredPage = true;
+        showToast(`📖 Ripreso da pagina ${startPage + 1}`);
+      }
+    }
+    
+    currentPageIndex = startPage;
+    updateWrapperPosition();
+    setTimeout(() => initSwipe(), 100);
+    updateUI();
+    
+    saveReadingProgress();
+  }
+
+  async function nextPage() {
+    if (currentPageIndex < totalPages - 1) goToPage(currentPageIndex + 1);
+    else await nextChapter();
+  }
+
+  async function prevPage() {
+    if (currentPageIndex > 0) goToPage(currentPageIndex - 1);
+    else await prevChapter();
+  }
+
+  function updateUI() {
+    if (totalPages > 0) {
+      const text = `${currentPageIndex + 1} / ${totalPages}`;
+      pageIndicator.textContent = text;
+      mobilePageIndicator.textContent = text;
+    }
+  }
+
+  window.addEventListener('resize', updateWrapperPosition);
+  
+  window.addEventListener('beforeunload', () => {
+    saveReadingProgress();
+  });
+  
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      saveReadingProgress();
+    }
+  });
+
+  document.addEventListener('keydown', async (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault(); await nextPage();
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); await prevPage();
+    }
+  });
+
+  prevBtn.onclick = prevPage;
+  nextBtn.onclick = nextPage;
+  mobilePrevBtn.onclick = prevPage;
+  mobileNextBtn.onclick = nextPage;
+
+  async function init() {
+    if (!mangaId) {
+      readerWrapper.innerHTML = '<div class="error">❌ Nessun manga specificato</div>';
+      return;
+    }
+    
+    const hasManifest = await loadManifest();
+    
+    if (!hasManifest) {
+      readerWrapper.innerHTML = `
+        <div class="empty">
+          <h3>📝 File manifest.json mancante</h3>
+          <p>Percorso: ${IMAGEKIT_BASE}/${mangaId}/manifest.json</p>
+        </div>
+      `;
+      return;
+    }
+    
+    if (!allNumbers.includes(currentNumber) && allNumbers.length > 0) {
+      currentNumber = allNumbers[0];
+      chapterSelect.value = currentNumber;
+    }
+    
+    await loadChapter();
+  }
+
+  init();
+</script>
 </body>
 </html>
