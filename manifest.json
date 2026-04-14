@@ -1,19 +1,19 @@
 {
   "name": "KitsuManga",
   "short_name": "Kitsu",
-  "start_url": "/KitsuManga/",
-  "scope": "/KitsuManga/",
+  "start_url": "/KitsuMangaTest/",
+  "scope": "/KitsuMangaTest/",
   "display": "standalone",
   "background_color": "#0f0c29",
   "theme_color": "#302b63",
   "icons": [
     {
-      "src": "/KitsuManga/icon-192.png",
+      "src": "/KitsuMangaTest/assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/KitsuManga/icon-512.png",
+      "src": "/KitsuMangaTest/assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
