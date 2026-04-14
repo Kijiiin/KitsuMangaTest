@@ -1877,7 +1877,11 @@
     loadBugs();
     updateListCounts();
     applySortAndFilter();
-    showToast('✅ Libreria ricaricata!');
+    showToast('✅ Dati ricaricati! Ricarico la pagina...');
+
+    setTimeout(() => {
+      window.location.reload(true);
+    }, 1000);
   }
 
   document.querySelectorAll('.admin-tab-btn').forEach(btn => {
