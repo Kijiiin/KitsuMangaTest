@@ -4,7 +4,7 @@
 class MangaWorldProvider {
   constructor() {
     this.api = 'https://www.mangaworld.cx';
-    this.corsProxy = 'https://api.allorigins.win/raw?url=';
+    this.corsProxy = 'https://corsproxy.io/?url=';
   }
 
   async searchManga(query) {
