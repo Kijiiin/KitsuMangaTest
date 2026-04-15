@@ -27,7 +27,6 @@ let mangaRequests = [];
 let bugReports = [];
 let currentTab = 'local';
 let currentSearchTerm = '';
-let pendingSearchTerm = ''; // Per memorizzare la ricerca da fare
 let currentAdminTab = 'requests';
 const ADMIN_PASSWORD = 'admin123';
 
