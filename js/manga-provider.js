@@ -4,7 +4,7 @@
 class MangaWorldProvider {
   constructor() {
     this.api = 'https://www.mangaworld.cx';
-    this.corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    this.corsProxy = 'https://api.allorigins.win/raw?url=';
   }
 
   async searchManga(query) {
@@ -13,6 +13,7 @@ class MangaWorldProvider {
     }
     
     const url = `${this.api}/archive?keyword=${encodeURIComponent(query.toLowerCase())}`;
+    const proxyUrl = `${this.corsProxy}${encodeURIComponent(url)}`;
     
     try {
       // Prova prima senza proxy, se fallisce usa il proxy
