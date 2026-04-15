@@ -173,6 +173,14 @@
     try {
       const response = await fetch(proxyUrl);
       const html = await response.text();
+      // SALVA L'HTML PER ISPEZIONARLO
+      console.log('HTML COMPLETO:', html);
+      // Crea un elemento nascosto per vedere la struttura
+      const debugDiv = document.createElement('div');
+      debugDiv.style.display = 'none';
+      debugDiv.innerHTML = html;
+      document.body.appendChild(debugDiv);
+      console.log('Struttura capitoli:', debugDiv.querySelectorAll('a[href*="read"]').length);
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       
