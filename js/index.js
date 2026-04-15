@@ -1118,7 +1118,7 @@ async function performMangaWorldSearch() {
     `;
     
     card.onclick = () => {
-      window.location.href = `pages/external-reader.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
+      window.location.href = `pages/manga-world-chapters.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
     };
     
     grid.appendChild(card);

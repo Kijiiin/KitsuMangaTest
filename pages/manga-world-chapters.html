@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capitoli - KitsuManga</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      color: white;
+      padding-top: 70px;
+    }
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 1rem 2rem;
+      background: rgba(10, 10, 20, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 1000;
+      border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    .back-btn {
+      background: rgba(139, 92, 246, 0.3);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      background: rgba(139, 92, 246, 0.6);
+    }
+    .site-logo {
+      font-size: 1.3rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #10b981, #34d399, #8b5cf6, #a78bfa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    .manga-info {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 40px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .manga-info img {
+      width: 150px;
+      border-radius: 15px;
+    }
+    .chapters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+    }
+    .chapter-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .chapter-card:hover {
+      transform: translateY(-5px);
+      background: rgba(139, 92, 246, 0.3);
+      border-color: #8b5cf6;
+    }
+    .chapter-number {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #c4b5fd;
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 50px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #8b5cf6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../index.html" class="back-btn">← Libreria</a>
+  <span class="site-logo">📚 KitsuManga</span>
+</div>
+
+<div class="container">
+  <div id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>Caricamento capitoli...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const mangaId = urlParams.get('id');
+  const mangaTitle = decodeURIComponent(urlParams.get('title') || 'Manga');
+  const mangaCover = decodeURIComponent(urlParams.get('cover') || '');
+  
+  document.title = `${mangaTitle} - Capitoli`;
+  
+  const api = 'https://www.mangaworld.cx';
+  const corsProxy = 'https://corsproxy.io/?url=';
+  
+  async function loadChapters() {
+    const url = `${api}/manga/${mangaId}`;
+    const proxyUrl = corsProxy + encodeURIComponent(url);
+    
+    try {
+      const response = await fetch(proxyUrl);
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      const chapters = [];
+      const chaptersWrapper = doc.querySelector('div.chapters-wrapper');
+      
+      if (!chaptersWrapper) {
+        throw new Error('Nessun capitolo trovato');
+      }
+      
+      // Cerca capitoli
+      const volumeElements = chaptersWrapper.querySelectorAll('div.volume-element');
+      
+      if (volumeElements.length > 0) {
+        for (const volume of volumeElements) {
+          const chapterDivs = volume.querySelectorAll('div.volume-chapters div');
+          for (const chap of chapterDivs) {
+            const link = chap.querySelector('a');
+            if (link) {
+              const href = link.getAttribute('href');
+              const chapterId = href.split('manga/')[1]?.split('?')[0];
+              const titleSpan = chap.querySelector('span');
+              const chapterNum = titleSpan?.textContent?.split(' ')[1] || '?';
+              
+              chapters.push({
+                id: chapterId,
+                number: chapterNum,
+                url: `${api}${href}?style=list`
+              });
+            }
+          }
+        }
+      } else {
+        const chapterElements = chaptersWrapper.querySelectorAll('div.chapter');
+        for (const chap of chapterElements) {
+          const link = chap.querySelector('a');
+          if (link) {
+            const href = link.getAttribute('href');
+            const chapterId = href.split('manga/')[1]?.split('?')[0];
+            const titleSpan = chap.querySelector('span.d-inline-block');
+            const chapterNum = titleSpan?.textContent?.split(' ')[1] || '?';
+            
+            chapters.push({
+              id: chapterId,
+              number: chapterNum,
+              url: `${api}${href}?style=list`
+            });
+          }
+        }
+      }
+      
+      chapters.reverse(); // Dal più recente al più vecchio
+      renderChapters(chapters);
+      
+    } catch (error) {
+      console.error(error);
+      document.getElementById('content').innerHTML = `
+        <div class="error">
+          ❌ Errore nel caricamento dei capitoli<br>
+          <small>${error.message}</small>
+        </div>
+      `;
+    }
+  }
+  
+  function renderChapters(chapters) {
+    if (chapters.length === 0) {
+      document.getElementById('content').innerHTML = `
+        <div class="error">📭 Nessun capitolo trovato</div>
+      `;
+      return;
+    }
+    
+    const contentDiv = document.getElementById('content');
+    
+    contentDiv.innerHTML = `
+      <div class="manga-info">
+        <img src="${mangaCover}" onerror="this.src='https://placehold.co/300x400/1a1a2e/a78bfa?text=${encodeURIComponent(mangaTitle)}'">
+        <div>
+          <h1>${escapeHtml(mangaTitle)}</h1>
+          <p style="margin-top: 10px; opacity: 0.8;">📚 ${chapters.length} capitoli disponibili</p>
+        </div>
+      </div>
+      <h2 style="margin-bottom: 20px;">📖 Capitoli</h2>
+      <div class="chapters-grid" id="chaptersGrid"></div>
+    `;
+    
+    const grid = document.getElementById('chaptersGrid');
+    
+    chapters.forEach(chapter => {
+      const card = document.createElement('div');
+      card.className = 'chapter-card';
+      card.innerHTML = `
+        <div class="chapter-number">${chapter.number}</div>
+        <div style="font-size: 0.8rem; margin-top: 10px;">Capitolo ${chapter.number}</div>
+        <div style="margin-top: 10px; font-size: 0.7rem;">▶ Leggi</div>
+      `;
+      card.onclick = () => {
+        // Vai al reader con l'URL del capitolo
+        window.location.href = `external-reader.html?url=${encodeURIComponent(chapter.url)}&title=${encodeURIComponent(mangaTitle)} - Capitolo ${chapter.number}&source=mangaworld`;
+      };
+      grid.appendChild(card);
+    });
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+  
+  if (mangaId) {
+    loadChapters();
+  } else {
+    document.getElementById('content').innerHTML = '<div class="error">❌ ID manga non specificato</div>';
+  }
+</script>
+
+</body>
+</html>
