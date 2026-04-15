@@ -1124,7 +1124,7 @@ async function performMangaWorldSearch() {
     card.onclick = () => {
       const url = `pages/manga-world-chapters.html?id=${manga.id}&title=${encodeURIComponent(manga.title)}&cover=${encodeURIComponent(manga.cover)}`;
       console.log('Navigazione verso:', url);
-      window.location.href = `pages/manga-world-chapters.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
+      window.location.href = `pages/manga-world-chapters.html?id=${manga.id}&title=${encodeURIComponent(manga.title)}&cover=${encodeURIComponent(manga.cover)}`;
     };
     
     grid.appendChild(card);
