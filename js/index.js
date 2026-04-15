@@ -100,7 +100,7 @@ function renderListTab(listType) {
     
     card.onclick = (e) => {
       if (e.target.classList.contains('remove-from-list-btn')) return;
-      window.location.href = `pages/manga-detail.html?manga=${encodeURIComponent(manga.id)}&title=${encodeURIComponent(manga.title)}`;
+      window.location.href = `..pages/manga-detail.html?manga=${encodeURIComponent(manga.id)}&title=${encodeURIComponent(manga.title)}`;
     };
     
     grid.appendChild(card);
