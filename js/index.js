@@ -100,7 +100,7 @@ function renderListTab(listType) {
     
     card.onclick = (e) => {
       if (e.target.classList.contains('remove-from-list-btn')) return;
-      window.location.href = `pages/manga-detail.html?manga=${encodeURIComponent(manga.id)}&title=${encodeURIComponent(manga.title)}`;
+      window.location.href = `../pages/manga-detail.html?manga=${encodeURIComponent(manga.id)}&title=${encodeURIComponent(manga.title)}`;
     };
     
     grid.appendChild(card);
@@ -835,7 +835,7 @@ function renderMangas(mangas) {
     `;
     card.onclick = function() {
       if (m.type === 'local') {
-        window.location.href = '/pages/manga-detail.html?manga=' + encodeURIComponent(m.id) + '&title=' + encodeURIComponent(m.title);
+        window.location.href = '../pages/manga-detail.html?manga=' + encodeURIComponent(m.id) + '&title=' + encodeURIComponent(m.title);
       } else {
         window.location.href = `external-reader.html?url=${encodeURIComponent(m.externalUrl)}&title=${encodeURIComponent(m.title)}`;
       }
@@ -1086,7 +1086,7 @@ async function searchMangaWorldAndRender(searchTerm) {
     `;
     
     card.onclick = () => {
-      window.location.href = `pages/external-reader.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
+      window.location.href = `../pages/external-reader.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
     };
     
     grid.appendChild(card);
