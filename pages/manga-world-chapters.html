@@ -127,9 +127,39 @@
 
 <script>
   const urlParams = new URLSearchParams(window.location.search);
-  const mangaId = urlParams.get('id');
-  const mangaTitle = decodeURIComponent(urlParams.get('title') || 'Manga');
-  const mangaCover = decodeURIComponent(urlParams.get('cover') || '');
+  let mangaId = urlParams.get('id');
+  let mangaTitle = urlParams.get('title');
+  let mangaCover = urlParams.get('cover');
+
+  // DECODIFICA I PARAMETRI
+  if (mangaTitle) {
+      mangaTitle = decodeURIComponent(mangaTitle);
+  } else {
+    mangaTitle = 'Manga';
+  }
+
+  if (mangaCover) {
+     mangaCover = decodeURIComponent(mangaCover);
+  } else {
+    mangaCover = '';
+  }
+
+  // CONTROLLO ID - SE MANCA, CERCA NEL TITOLO
+  if (!mangaId || mangaId === 'null' || mangaId === 'undefined') {
+    console.error('❌ ID mancante! URL:', window.location.href);
+    console.log('Parametri ricevuti:', { mangaId, mangaTitle, mangaCover });
+  
+    // Mostra errore all'utente
+    document.getElementById('content').innerHTML = `
+      <div class="error">
+        ❌ ID manga non specificato<br>
+        <small>URL: ${window.location.href}</small>
+      </div>
+    `;
+    throw new Error('ID manga non specificato');
+  }
+
+  console.log('✅ Parametri caricati:', { mangaId, mangaTitle, mangaCover });
   
   document.title = `${mangaTitle} - Capitoli`;
   
