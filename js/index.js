@@ -4,6 +4,8 @@ const grid = document.getElementById('grid');
 const sortSelect = document.getElementById('sortSelect');
 const searchInput = document.getElementById('searchInput');
 const searchClear = document.getElementById('searchClear');
+const searchSubmitBtn = document.getElementById('searchSubmitBtn');
+let pendingSearchTerm = ''; // Per memorizzare la ricerca da fare
 const resultsInfo = document.getElementById('resultsInfo');
 const tabs = document.querySelectorAll('.tab-btn');
 const addMangaBtn = document.getElementById('addMangaBtn');
@@ -25,6 +27,7 @@ let mangaRequests = [];
 let bugReports = [];
 let currentTab = 'local';
 let currentSearchTerm = '';
+let pendingSearchTerm = ''; // Per memorizzare la ricerca da fare
 let currentAdminTab = 'requests';
 const ADMIN_PASSWORD = 'admin123';
 
@@ -926,6 +929,12 @@ function applySortAndFilter() {
 function handleSearch() {
   currentSearchTerm = searchInput.value;
   searchClear.style.display = currentSearchTerm.length > 0 ? 'flex' : 'none';
+
+  // Per MangaEsterni: NON fare ricerca in tempo reale, aspetta il bottone
+  if (currentTab === 'external') {
+    // Non fare nulla in tempo reale
+    return;
+  }
   applySortAndFilter();
 }
 
@@ -953,6 +962,15 @@ async function switchTab(tab) {
   
   const isListTab = ['reading', 'plan', 'completed'].includes(tab);
   sortSelect.style.display = isListTab ? 'none' : 'block';
+
+  // 🔽 MOSTRA/NASCONDI IL BOTTONE DI RICERCA
+  if (tab === 'external') {
+    searchSubmitBtn.style.display = 'block';
+    searchInput.placeholder = '🔍 Cerca manga su MangaWorld...';
+  } else {
+    searchSubmitBtn.style.display = 'none';
+    searchInput.placeholder = '🔍 Cerca manga per nome, autore o genere...';
+  }
   
   if (tab === 'external') await loadExternalMangas(true);
   if (tab === 'requests') loadRequests();
@@ -1047,31 +1065,46 @@ tabs.forEach(btn => {
 addMangaBtn.onclick = () => {
   requestModal.classList.add('active');
 };
-// INTEGRAZIONE MANGAWORLD
+
+// Inizializza il provider
 const mangaWorldProvider = new MangaWorldProvider();
 let isMangaWorldSearch = false;
 let lastMangaWorldResults = [];
 
-async function searchMangaWorldAndRender(searchTerm) {
-  if (!searchTerm || searchTerm.trim() === '') {
-    grid.innerHTML = `<div class="no-results">🌐 Inserisci un termine di ricerca per cercare su MangaWorld</div>`;
-    resultsInfo.innerHTML = `📚 Cerca manga su MangaWorld`;
-    isMangaWorldSearch = false;
+// Funzione per la ricerca su MangaWorld (chiamata dal bottone)
+async function performMangaWorldSearch() {
+  const searchTerm = searchInput.value.trim();
+  
+  if (!searchTerm) {
+    showToast('📝 Inserisci un termine di ricerca', true);
     return;
   }
   
+  if (currentTab !== 'external') {
+    return;
+  }
+  
+  // Mostra loading
   grid.innerHTML = `<div class="loading"><div class="spinner"></div><div>🔍 Cerco su MangaWorld: "${escapeHtml(searchTerm)}"...</div></div>`;
+  resultsInfo.innerHTML = `🌐 Ricerca in corso su MangaWorld...`;
   
   const results = await mangaWorldProvider.searchManga(searchTerm);
   lastMangaWorldResults = results;
   
   if (results.length === 0) {
-    grid.innerHTML = `<div class="no-results">😕 Nessun manga trovato su MangaWorld per "${escapeHtml(searchTerm)}"</div>`;
+    grid.innerHTML = `
+      <div class="no-results">
+        😕 Nessun manga trovato su MangaWorld per "${escapeHtml(searchTerm)}"
+        <br><br>
+        <small>💡 Prova con un altro titolo</small>
+      </div>
+    `;
     resultsInfo.innerHTML = `❌ Nessun risultato su MangaWorld`;
     isMangaWorldSearch = false;
     return;
   }
   
+  // Mostra i risultati
   grid.innerHTML = '';
   results.forEach(manga => {
     const card = document.createElement('div');
@@ -1086,7 +1119,7 @@ async function searchMangaWorldAndRender(searchTerm) {
     `;
     
     card.onclick = () => {
-      window.location.href = `../pages/external-reader.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
+      window.location.href = `pages/external-reader.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
     };
     
     grid.appendChild(card);
@@ -1094,61 +1127,22 @@ async function searchMangaWorldAndRender(searchTerm) {
   
   resultsInfo.innerHTML = `🌐 Trovati ${results.length} manga su MangaWorld per "${escapeHtml(searchTerm)}"`;
   isMangaWorldSearch = true;
+  currentSearchTerm = searchTerm;
 }
 
-// Salva le funzioni originali
-const originalApplySortAndFilter = applySortAndFilter;
-const originalHandleSearch = handleSearch;
-const originalSwitchTab = switchTab;
+// Event listener per il bottone di ricerca (solo MangaWorld)
+if (searchSubmitBtn) {
+  searchSubmitBtn.addEventListener('click', performMangaWorldSearch);
+}
 
-// Sovrascrivi handleSearch
-handleSearch = function() {
-  currentSearchTerm = searchInput.value;
-  searchClear.style.display = currentSearchTerm.length > 0 ? 'flex' : 'none';
-  
-  if (currentTab === 'external') {
-    if (currentSearchTerm.trim()) {
-      searchMangaWorldAndRender(currentSearchTerm);
-    } else {
-      isMangaWorldSearch = false;
-      originalApplySortAndFilter();
-    }
-  } else {
-    originalHandleSearch();
+// Premi INVIO nella barra di ricerca (solo per MangaWorld)
+searchInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && currentTab === 'external') {
+    e.preventDefault();
+    performMangaWorldSearch();
   }
-};
-
-// Sovrascrivi applySortAndFilter
-applySortAndFilter = function() {
-  if (currentTab === 'external' && isMangaWorldSearch) {
-    return;
-  }
-  originalApplySortAndFilter();
-};
-
-// Sovrascrivi switchTab
-switchTab = async function(tab) {
-  if (currentTab === 'external') {
-    isMangaWorldSearch = false;
-    lastMangaWorldResults = [];
-  }
-  
-  await originalSwitchTab(tab);
-  
-  if (tab === 'external' && currentSearchTerm.trim()) {
-    searchMangaWorldAndRender(currentSearchTerm);
-  }
-};
-
-// Ricollega gli event listener
-searchInput.removeEventListener('input', originalHandleSearch);
-searchInput.addEventListener('input', handleSearch);
-
-tabs.forEach(btn => {
-  btn.removeEventListener('click', () => switchTab(btn.dataset.tab));
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
-console.log('✅ MangaWorld integrato!');
+console.log('✅ MangaWorld integrato! (ricerca manuale con bottone)');
 
 loadAllMangas();
