@@ -125,135 +125,83 @@
   </div>
 </div>
 
+<script src="../js/manga-world-api.js"></script>
+
 <script>
+  // ============================================================
+  // LEGGI PARAMETRI URL
+  // ============================================================
   const urlParams = new URLSearchParams(window.location.search);
   let mangaId = urlParams.get('id');
   let mangaTitle = urlParams.get('title');
   let mangaCover = urlParams.get('cover');
-
-  // DECODIFICA I PARAMETRI
+  
   if (mangaTitle) {
-      mangaTitle = decodeURIComponent(mangaTitle);
+    mangaTitle = decodeURIComponent(mangaTitle);
   } else {
     mangaTitle = 'Manga';
   }
-
+  
   if (mangaCover) {
-     mangaCover = decodeURIComponent(mangaCover);
+    mangaCover = decodeURIComponent(mangaCover);
   } else {
     mangaCover = '';
   }
-
-  // CONTROLLO ID - SE MANCA, CERCA NEL TITOLO
-  if (!mangaId || mangaId === 'null' || mangaId === 'undefined') {
-    console.error('❌ ID mancante! URL:', window.location.href);
-    console.log('Parametri ricevuti:', { mangaId, mangaTitle, mangaCover });
   
-    // Mostra errore all'utente
+  console.log('📝 Manga ID:', mangaId);
+  console.log('📝 Manga Title:', mangaTitle);
+  
+  if (!mangaId || mangaId === 'null' || mangaId === 'undefined') {
     document.getElementById('content').innerHTML = `
       <div class="error">
         ❌ ID manga non specificato<br>
-        <small>URL: ${window.location.href}</small>
+        <a href="../index.html" style="color: #8b5cf6;">← Torna alla libreria</a>
       </div>
     `;
-    throw new Error('ID manga non specificato');
+    throw new Error('ID mancante');
   }
-
-  console.log('✅ Parametri caricati:', { mangaId, mangaTitle, mangaCover });
   
   document.title = `${mangaTitle} - Capitoli`;
   
-  const api = 'https://www.mangaworld.cx';
-  const corsProxy = 'https://corsproxy.io/?url=';
+  // ============================================================
+  // USA LA NUOVA API
+  // ============================================================
+  const mangaAPI = new MangaWorldAPI();
   
   async function loadChapters() {
-    const url = `${api}/manga/${mangaId}`;
-    const proxyUrl = corsProxy + encodeURIComponent(url);
+    console.log('🔍 Caricamento capitoli per ID:', mangaId);
     
     try {
-      const response = await fetch(proxyUrl);
-      const html = await response.text();
-      // SALVA L'HTML PER ISPEZIONARLO
-      console.log('HTML COMPLETO:', html);
-      // Crea un elemento nascosto per vedere la struttura
-      const debugDiv = document.createElement('div');
-      debugDiv.style.display = 'none';
-      debugDiv.innerHTML = html;
-      document.body.appendChild(debugDiv);
-      console.log('Struttura capitoli:', debugDiv.querySelectorAll('a[href*="read"]').length);
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
+      const chapters = await mangaAPI.findChapters(mangaId);
+      console.log(`✅ Trovati ${chapters.length} capitoli`);
       
-      const chapters = [];
-      const chaptersWrapper = doc.querySelector('div.chapters-wrapper');
-      
-      if (!chaptersWrapper) {
-        throw new Error('Nessun capitolo trovato');
+      if (chapters.length === 0) {
+        document.getElementById('content').innerHTML = `
+          <div class="error">
+            📭 Nessun capitolo trovato per ${escapeHtml(mangaTitle)}
+            <br><br>
+            <a href="https://www.mangaworld.cx/manga/${mangaId}" target="_blank" style="color: #8b5cf6;">📖 Apri su MangaWorld</a>
+          </div>
+        `;
+        return;
       }
       
-      // Cerca capitoli
-      const volumeElements = chaptersWrapper.querySelectorAll('div.volume-element');
-      
-      if (volumeElements.length > 0) {
-        for (const volume of volumeElements) {
-          const chapterDivs = volume.querySelectorAll('div.volume-chapters div');
-          for (const chap of chapterDivs) {
-            const link = chap.querySelector('a');
-            if (link) {
-              const href = link.getAttribute('href');
-              const chapterId = href.split('manga/')[1]?.split('?')[0];
-              const titleSpan = chap.querySelector('span');
-              const chapterNum = titleSpan?.textContent?.split(' ')[1] || '?';
-              
-              chapters.push({
-                id: chapterId,
-                number: chapterNum,
-                url: `${api}${href}?style=list`
-              });
-            }
-          }
-        }
-      } else {
-        const chapterElements = chaptersWrapper.querySelectorAll('div.chapter');
-        for (const chap of chapterElements) {
-          const link = chap.querySelector('a');
-          if (link) {
-            const href = link.getAttribute('href');
-            const chapterId = href.split('manga/')[1]?.split('?')[0];
-            const titleSpan = chap.querySelector('span.d-inline-block');
-            const chapterNum = titleSpan?.textContent?.split(' ')[1] || '?';
-            
-            chapters.push({
-              id: chapterId,
-              number: chapterNum,
-              url: `${api}${href}?style=list`
-            });
-          }
-        }
-      }
-      
-      chapters.reverse(); // Dal più recente al più vecchio
       renderChapters(chapters);
       
     } catch (error) {
-      console.error(error);
+      console.error('❌ Errore:', error);
       document.getElementById('content').innerHTML = `
         <div class="error">
           ❌ Errore nel caricamento dei capitoli<br>
           <small>${error.message}</small>
+          <br><br>
+          <a href="https://www.mangaworld.cx/manga/${mangaId}" target="_blank" style="color: #8b5cf6;">📖 Apri su MangaWorld</a>
         </div>
       `;
     }
   }
   
   function renderChapters(chapters) {
-    if (chapters.length === 0) {
-      document.getElementById('content').innerHTML = `
-        <div class="error">📭 Nessun capitolo trovato</div>
-      `;
-      return;
-    }
-    
     const contentDiv = document.getElementById('content');
     
     contentDiv.innerHTML = `
@@ -274,13 +222,14 @@
       const card = document.createElement('div');
       card.className = 'chapter-card';
       card.innerHTML = `
-        <div class="chapter-number">${chapter.number}</div>
-        <div style="font-size: 0.8rem; margin-top: 10px;">Capitolo ${chapter.number}</div>
+        <div class="chapter-number">${escapeHtml(chapter.chapter)}</div>
+        <div>Capitolo ${escapeHtml(chapter.chapter)}</div>
         <div style="margin-top: 10px; font-size: 0.7rem;">▶ Leggi</div>
       `;
       card.onclick = () => {
-        // Vai al reader con l'URL del capitolo
-        window.location.href = `external-reader.html?url=${encodeURIComponent(chapter.url)}&title=${encodeURIComponent(mangaTitle)} - Capitolo ${chapter.number}&source=mangaworld`;
+        // Usa l'URL del capitolo che abbiamo dall'API
+        const readUrl = chapter.url.includes('?style=list') ? chapter.url : `${chapter.url}?style=list`;
+        window.location.href = `external-reader.html?url=${encodeURIComponent(readUrl)}&title=${encodeURIComponent(mangaTitle)} - Capitolo ${chapter.chapter}&source=mangaworld`;
       };
       grid.appendChild(card);
     });
@@ -296,11 +245,8 @@
     });
   }
   
-  if (mangaId) {
-    loadChapters();
-  } else {
-    document.getElementById('content').innerHTML = '<div class="error">❌ ID manga non specificato</div>';
-  }
+  // Avvia il caricamento
+  loadChapters();
 </script>
 
 </body>
