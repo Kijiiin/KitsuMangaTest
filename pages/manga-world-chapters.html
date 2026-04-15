@@ -71,7 +71,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 15px;
-      max-height: 500px;
+      max-height: 600px;
       overflow-y: auto;
       padding: 10px;
     }
@@ -107,17 +107,12 @@
       background: #8b5cf6;
       border: none;
       color: white;
-      padding: 8px 16px;
+      padding: 8px 20px;
       border-radius: 20px;
-      margin-left: 10px;
       cursor: pointer;
     }
     .update-btn:hover {
       background: #a78bfa;
-    }
-    .range-input {
-      width: 200px;
-      margin: 0 10px;
     }
     .controls-bar {
       display: flex;
@@ -125,6 +120,15 @@
       gap: 15px;
       flex-wrap: wrap;
       margin-top: 15px;
+    }
+    .open-manga-link {
+      display: inline-block;
+      margin-top: 20px;
+      color: #8b5cf6;
+      text-decoration: none;
+      background: rgba(139,92,246,0.2);
+      padding: 10px 20px;
+      border-radius: 25px;
     }
   </style>
 </head>
@@ -153,7 +157,7 @@
   else mangaCover = '';
   
   if (!mangaId || mangaId === 'null') {
-    document.getElementById('content').innerHTML = `<div class="error" style="text-align:center;padding:50px;">❌ ID non specificato</div>`;
+    document.getElementById('content').innerHTML = '<div style="text-align:center;padding:50px;">❌ ID non specificato</div>';
     throw new Error('No ID');
   }
   
@@ -161,28 +165,22 @@
   
   const api = 'https://www.mangaworld.cx';
   
-  // Mappa dei manga conosciuti con il loro numero totale di capitoli
-  // Puoi espandere questa lista
+  // Numero totale di capitoli per manga conosciuti
   const knownManga = {
-    '1708': { name: 'One Piece', chapters: 1130 },
-    '1': { name: 'Naruto', chapters: 700 },
-    '2': { name: 'Dragon Ball', chapters: 520 },
-    '3': { name: 'Attack on Titan', chapters: 139 },
-    '4': { name: 'My Hero Academia', chapters: 430 },
-    '5': { name: 'Demon Slayer', chapters: 205 },
-    '6': { name: 'Jujutsu Kaisen', chapters: 270 },
-    '7': { name: 'Death Note', chapters: 108 },
-    '8': { name: 'Fullmetal Alchemist', chapters: 108 },
-    '9': { name: 'Tokyo Ghoul', chapters: 179 },
-    '10': { name: 'One Punch Man', chapters: 250 }
+    '1708': 1130,   // One Piece
+    '1': 700,       // Naruto
+    '2': 520,       // Dragon Ball
+    '3': 139,       // Attack on Titan
+    '4': 430,       // My Hero Academia
+    '5': 205,       // Demon Slayer
+    '6': 270,       // Jujutsu Kaisen
   };
   
-  // Numero totale di capitoli (default 100, o usa quello nella mappa)
-  let totalChapters = knownManga[mangaId] ? knownManga[mangaId].chapters : 100;
+  let totalChapters = knownManga[mangaId] || 200; // Default 200 capitoli
   
   function renderChapters() {
     const chapters = [];
-    // Mostra dal più recente al più vecchio
+    // Dal più recente al più vecchio
     for (let i = totalChapters; i >= 1; i--) {
       chapters.push({
         number: i,
@@ -191,38 +189,37 @@
     }
     
     const contentDiv = document.getElementById('content');
+    const limit = Math.min(100, totalChapters);
     
     contentDiv.innerHTML = `
       <div class="manga-info">
         <img src="${mangaCover}" onerror="this.src='https://placehold.co/300x400/1a1a2e/a78bfa?text=${encodeURIComponent(mangaTitle)}'">
         <div style="flex:1">
           <h1>${escapeHtml(mangaTitle)}</h1>
-          <p style="margin-top: 10px; opacity: 0.8;">📚 ${totalChapters} capitoli totali</p>
+          <p style="margin-top: 10px; opacity: 0.8;">📚 ~${totalChapters} capitoli totali</p>
           
           <div class="controls-bar">
-            <span>📖 Mostra capitoli:</span>
-            <input type="range" id="chapterRange" class="range-input" min="10" max="${Math.min(totalChapters, 500)}" value="${Math.min(totalChapters, 100)}" step="10">
-            <input type="number" id="chapterCount" class="total-input" value="${Math.min(totalChapters, 100)}" min="10" max="${Math.min(totalChapters, 500)}" step="10">
-            <button id="updateBtn" class="update-btn">Aggiorna</button>
+            <span>📖 Capitoli da mostrare:</span>
+            <input type="number" id="chapterCount" class="total-input" value="${limit}" min="10" max="300" step="10">
+            <button id="updateBtn" class="update-btn">Mostra</button>
           </div>
           
-          <div style="margin-top: 10px;">
-            <small>💡 I capitoli si aprono su MangaWorld. Se non caricano, clicca su "Apri su MangaWorld" in fondo alla pagina.</small>
-          </div>
+          <p style="margin-top: 10px; font-size: 0.8rem; opacity: 0.7;">
+            💡 I capitoli si aprono su MangaWorld in una nuova scheda
+          </p>
         </div>
       </div>
-      <h2 style="margin-bottom: 20px;">📖 Capitoli disponibili</h2>
+      <h2 style="margin-bottom: 20px;">📖 Capitoli recenti</h2>
       <div class="chapters-grid" id="chaptersGrid"></div>
-      <div style="text-align: center; margin-top: 30px; padding: 20px;">
-        <a href="${api}/manga/${mangaId}" target="_blank" style="color: #8b5cf6; text-decoration: none; background: rgba(139,92,246,0.2); padding: 10px 20px; border-radius: 25px;">🌐 Apri su MangaWorld (se il lettore non funziona)</a>
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="${api}/manga/${mangaId}" target="_blank" class="open-manga-link">🌐 Apri su MangaWorld (tutti i capitoli)</a>
       </div>
     `;
     
-    const grid = document.getElementById('chaptersGrid');
-    const limit = parseInt(document.getElementById('chapterCount').value);
+    const showCount = parseInt(document.getElementById('chapterCount').value);
+    const recentChapters = chapters.slice(0, showCount);
     
-    // Mostra solo gli ultimi 'limit' capitoli (i più recenti)
-    const recentChapters = chapters.slice(0, limit);
+    const grid = document.getElementById('chaptersGrid');
     
     recentChapters.forEach(chapter => {
       const card = document.createElement('div');
@@ -233,48 +230,36 @@
         <div style="margin-top: 10px; font-size: 0.7rem;">▶ Leggi</div>
       `;
       card.onclick = () => {
-        // Apri direttamente su MangaWorld (evita problemi CORS)
         window.open(chapter.url, '_blank');
-        // Mostra un messaggio
-        const toast = document.createElement('div');
-        toast.textContent = `📖 Apertura capitolo ${chapter.number} su MangaWorld...`;
-        toast.style.position = 'fixed';
-        toast.style.bottom = '20px';
-        toast.style.left = '50%';
-        toast.style.transform = 'translateX(-50%)';
-        toast.style.background = '#8b5cf6';
-        toast.style.color = 'white';
-        toast.style.padding = '10px 20px';
-        toast.style.borderRadius = '25px';
-        toast.style.zIndex = '9999';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
+        showToast(`📖 Apertura capitolo ${chapter.number}...`);
       };
       grid.appendChild(card);
     });
     
-    // Sincronizza range e input
-    const range = document.getElementById('chapterRange');
-    const numberInput = document.getElementById('chapterCount');
-    
-    range.oninput = () => {
-      numberInput.value = range.value;
-    };
-    
-    numberInput.oninput = () => {
-      let val = parseInt(numberInput.value);
-      if (val < 10) val = 10;
-      if (val > totalChapters) val = totalChapters;
-      numberInput.value = val;
-      range.value = val;
-    };
-    
     document.getElementById('updateBtn').onclick = () => {
-      const newLimit = parseInt(numberInput.value);
-      if (newLimit > 0 && newLimit <= totalChapters) {
-        renderChapters();
-      }
+      let val = parseInt(document.getElementById('chapterCount').value);
+      if (val < 5) val = 5;
+      if (val > 300) val = 300;
+      document.getElementById('chapterCount').value = val;
+      renderChapters();
     };
+  }
+  
+  function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.textContent = msg;
+    toast.style.position = 'fixed';
+    toast.style.bottom = '30px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = '#8b5cf6';
+    toast.style.color = 'white';
+    toast.style.padding = '10px 20px';
+    toast.style.borderRadius = '25px';
+    toast.style.zIndex = '9999';
+    toast.style.fontSize = '0.9rem';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
   }
   
   function escapeHtml(str) {
