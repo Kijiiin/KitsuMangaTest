@@ -835,7 +835,7 @@ function renderMangas(mangas) {
     `;
     card.onclick = function() {
       if (m.type === 'local') {
-        window.location.href = '../pages/manga-detail.html?manga=' + encodeURIComponent(m.id) + '&title=' + encodeURIComponent(m.title);
+        window.location.href = '/pages/manga-detail.html?manga=' + encodeURIComponent(m.id) + '&title=' + encodeURIComponent(m.title);
       } else {
         window.location.href = `external-reader.html?url=${encodeURIComponent(m.externalUrl)}&title=${encodeURIComponent(m.title)}`;
       }
