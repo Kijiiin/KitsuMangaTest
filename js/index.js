@@ -1106,6 +1106,10 @@ async function performMangaWorldSearch() {
   // Mostra i risultati
   grid.innerHTML = '';
   results.forEach(manga => {
+    console.log('Manga trovato:', manga); // ← AGGIUNGI QUESTO
+    console.log('ID:', manga.id);         // ← AGGIUNGI QUESTO
+    console.log('Title:', manga.title);   // ← AGGIUNGI QUESTO
+
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
@@ -1118,6 +1122,8 @@ async function performMangaWorldSearch() {
     `;
     
     card.onclick = () => {
+      const url = `pages/manga-world-chapters.html?id=${manga.id}&title=${encodeURIComponent(manga.title)}&cover=${encodeURIComponent(manga.cover)}`;
+      console.log('Navigazione verso:', url);
       window.location.href = `pages/manga-world-chapters.html?url=${encodeURIComponent(manga.externalUrl)}&title=${encodeURIComponent(manga.title)}&source=mangaworld`;
     };
     
