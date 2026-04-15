@@ -4,7 +4,7 @@
 class MangaWorldAPI {
   constructor() {
     this.api = 'https://www.mangaworld.cx';
-    this.corsProxy = 'https://corsproxy.io/?url=';
+    this.corsProxy = 'https://api.allorigins.win/raw?url=';
   }
 
   // Cerca manga
