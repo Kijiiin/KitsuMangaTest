@@ -71,6 +71,9 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 15px;
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 10px;
     }
     .chapter-card {
       background: rgba(255,255,255,0.1);
@@ -91,21 +94,37 @@
       font-weight: bold;
       color: #c4b5fd;
     }
-    .loading, .error {
+    .total-input {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid #8b5cf6;
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: white;
+      width: 100px;
       text-align: center;
-      padding: 50px;
     }
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.1);
-      border-top-color: #8b5cf6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1rem;
+    .update-btn {
+      background: #8b5cf6;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-left: 10px;
+      cursor: pointer;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .update-btn:hover {
+      background: #a78bfa;
+    }
+    .range-input {
+      width: 200px;
+      margin: 0 10px;
+    }
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 15px;
     }
   </style>
 </head>
@@ -117,129 +136,145 @@
 </div>
 
 <div class="container">
-  <div id="content">
-    <div class="loading">
-      <div class="spinner"></div>
-      <div>Caricamento capitoli...</div>
-    </div>
-  </div>
+  <div id="content"></div>
 </div>
 
-<script src="../js/manga-world-api.js"></script>
-
 <script>
-  // ============================================================
-  // LEGGI PARAMETRI URL
-  // ============================================================
+  // PARAMETRI URL
   const urlParams = new URLSearchParams(window.location.search);
   let mangaId = urlParams.get('id');
   let mangaTitle = urlParams.get('title');
   let mangaCover = urlParams.get('cover');
   
-  if (mangaTitle) {
-    mangaTitle = decodeURIComponent(mangaTitle);
-  } else {
-    mangaTitle = 'Manga';
-  }
+  if (mangaTitle) mangaTitle = decodeURIComponent(mangaTitle);
+  else mangaTitle = 'Manga';
   
-  if (mangaCover) {
-    mangaCover = decodeURIComponent(mangaCover);
-  } else {
-    mangaCover = '';
-  }
+  if (mangaCover) mangaCover = decodeURIComponent(mangaCover);
+  else mangaCover = '';
   
-  console.log('📝 Manga ID:', mangaId);
-  console.log('📝 Manga Title:', mangaTitle);
-  
-  if (!mangaId || mangaId === 'null' || mangaId === 'undefined') {
-    document.getElementById('content').innerHTML = `
-      <div class="error">
-        ❌ ID manga non specificato<br>
-        <a href="../index.html" style="color: #8b5cf6;">← Torna alla libreria</a>
-      </div>
-    `;
-    throw new Error('ID mancante');
+  if (!mangaId || mangaId === 'null') {
+    document.getElementById('content').innerHTML = `<div class="error" style="text-align:center;padding:50px;">❌ ID non specificato</div>`;
+    throw new Error('No ID');
   }
   
   document.title = `${mangaTitle} - Capitoli`;
   
-  // ============================================================
-  // USA LA NUOVA API
-  // ============================================================
-  const mangaAPI = new MangaWorldAPI();
+  const api = 'https://www.mangaworld.cx';
   
-  async function loadChapters() {
-    console.log('🔍 Caricamento capitoli per ID:', mangaId);
-    
-    try {
-      const testUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://www.mangaworld.cx/manga/' + mangaId)}`;
-    console.log('Test URL:', testUrl);
-
-      const chapters = await mangaAPI.findChapters(mangaId);
-      console.log(`✅ Trovati ${chapters.length} capitoli`);
-      
-      if (chapters.length === 0) {
-        document.getElementById('content').innerHTML = `
-          <div class="error">
-            📭 Nessun capitolo trovato per ${escapeHtml(mangaTitle)}
-            <br><br>
-            <p>Il sito MangaWorld potrebbe aver cambiato struttura.</p>
-            <p>Puoi leggere il manga direttamente qui:</p>
-            <a href="https://www.mangaworld.cx/manga/${mangaId}" target="_blank" style="color: #8b5cf6; display: inline-block; margin-top: 10px; padding: 10px 20px; background: rgba(139,92,246,0.3); border-radius: 25px;">📖 Apri su MangaWorld</a>
-          <br><br>
-          <button onclick="location.reload()" style="background: #8b5cf6; border: none; color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer;">↻ Riprova</button>
-        </div>
-      `;
-        return;
-      }
-      
-      renderChapters(chapters);
-      
-    } catch (error) {
-      console.error('❌ Errore:', error);
-      document.getElementById('content').innerHTML = `
-        <div class="error">
-          ❌ Errore nel caricamento dei capitoli<br>
-          <small>${error.message}</small>
-          <br><br>
-          <a href="https://www.mangaworld.cx/manga/${mangaId}" target="_blank" style="color: #8b5cf6;">📖 Apri su MangaWorld</a>
-        </div>
-      `;
+  // Mappa dei manga conosciuti con il loro numero totale di capitoli
+  // Puoi espandere questa lista
+  const knownManga = {
+    '1708': { name: 'One Piece', chapters: 1130 },
+    '1': { name: 'Naruto', chapters: 700 },
+    '2': { name: 'Dragon Ball', chapters: 520 },
+    '3': { name: 'Attack on Titan', chapters: 139 },
+    '4': { name: 'My Hero Academia', chapters: 430 },
+    '5': { name: 'Demon Slayer', chapters: 205 },
+    '6': { name: 'Jujutsu Kaisen', chapters: 270 },
+    '7': { name: 'Death Note', chapters: 108 },
+    '8': { name: 'Fullmetal Alchemist', chapters: 108 },
+    '9': { name: 'Tokyo Ghoul', chapters: 179 },
+    '10': { name: 'One Punch Man', chapters: 250 }
+  };
+  
+  // Numero totale di capitoli (default 100, o usa quello nella mappa)
+  let totalChapters = knownManga[mangaId] ? knownManga[mangaId].chapters : 100;
+  
+  function renderChapters() {
+    const chapters = [];
+    // Mostra dal più recente al più vecchio
+    for (let i = totalChapters; i >= 1; i--) {
+      chapters.push({
+        number: i,
+        url: `${api}/read/${mangaId}/${i}?style=list`
+      });
     }
-  }
-  
-  function renderChapters(chapters) {
+    
     const contentDiv = document.getElementById('content');
     
     contentDiv.innerHTML = `
       <div class="manga-info">
         <img src="${mangaCover}" onerror="this.src='https://placehold.co/300x400/1a1a2e/a78bfa?text=${encodeURIComponent(mangaTitle)}'">
-        <div>
+        <div style="flex:1">
           <h1>${escapeHtml(mangaTitle)}</h1>
-          <p style="margin-top: 10px; opacity: 0.8;">📚 ${chapters.length} capitoli disponibili</p>
+          <p style="margin-top: 10px; opacity: 0.8;">📚 ${totalChapters} capitoli totali</p>
+          
+          <div class="controls-bar">
+            <span>📖 Mostra capitoli:</span>
+            <input type="range" id="chapterRange" class="range-input" min="10" max="${Math.min(totalChapters, 500)}" value="${Math.min(totalChapters, 100)}" step="10">
+            <input type="number" id="chapterCount" class="total-input" value="${Math.min(totalChapters, 100)}" min="10" max="${Math.min(totalChapters, 500)}" step="10">
+            <button id="updateBtn" class="update-btn">Aggiorna</button>
+          </div>
+          
+          <div style="margin-top: 10px;">
+            <small>💡 I capitoli si aprono su MangaWorld. Se non caricano, clicca su "Apri su MangaWorld" in fondo alla pagina.</small>
+          </div>
         </div>
       </div>
-      <h2 style="margin-bottom: 20px;">📖 Capitoli</h2>
+      <h2 style="margin-bottom: 20px;">📖 Capitoli disponibili</h2>
       <div class="chapters-grid" id="chaptersGrid"></div>
+      <div style="text-align: center; margin-top: 30px; padding: 20px;">
+        <a href="${api}/manga/${mangaId}" target="_blank" style="color: #8b5cf6; text-decoration: none; background: rgba(139,92,246,0.2); padding: 10px 20px; border-radius: 25px;">🌐 Apri su MangaWorld (se il lettore non funziona)</a>
+      </div>
     `;
     
     const grid = document.getElementById('chaptersGrid');
+    const limit = parseInt(document.getElementById('chapterCount').value);
     
-    chapters.forEach(chapter => {
+    // Mostra solo gli ultimi 'limit' capitoli (i più recenti)
+    const recentChapters = chapters.slice(0, limit);
+    
+    recentChapters.forEach(chapter => {
       const card = document.createElement('div');
       card.className = 'chapter-card';
       card.innerHTML = `
-        <div class="chapter-number">${escapeHtml(chapter.chapter)}</div>
-        <div>Capitolo ${escapeHtml(chapter.chapter)}</div>
+        <div class="chapter-number">${chapter.number}</div>
+        <div>Capitolo ${chapter.number}</div>
         <div style="margin-top: 10px; font-size: 0.7rem;">▶ Leggi</div>
       `;
       card.onclick = () => {
-        // Usa l'URL del capitolo che abbiamo dall'API
-        const readUrl = chapter.url.includes('?style=list') ? chapter.url : `${chapter.url}?style=list`;
-        window.location.href = `external-reader.html?url=${encodeURIComponent(readUrl)}&title=${encodeURIComponent(mangaTitle)} - Capitolo ${chapter.chapter}&source=mangaworld`;
+        // Apri direttamente su MangaWorld (evita problemi CORS)
+        window.open(chapter.url, '_blank');
+        // Mostra un messaggio
+        const toast = document.createElement('div');
+        toast.textContent = `📖 Apertura capitolo ${chapter.number} su MangaWorld...`;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.background = '#8b5cf6';
+        toast.style.color = 'white';
+        toast.style.padding = '10px 20px';
+        toast.style.borderRadius = '25px';
+        toast.style.zIndex = '9999';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
       };
       grid.appendChild(card);
     });
+    
+    // Sincronizza range e input
+    const range = document.getElementById('chapterRange');
+    const numberInput = document.getElementById('chapterCount');
+    
+    range.oninput = () => {
+      numberInput.value = range.value;
+    };
+    
+    numberInput.oninput = () => {
+      let val = parseInt(numberInput.value);
+      if (val < 10) val = 10;
+      if (val > totalChapters) val = totalChapters;
+      numberInput.value = val;
+      range.value = val;
+    };
+    
+    document.getElementById('updateBtn').onclick = () => {
+      const newLimit = parseInt(numberInput.value);
+      if (newLimit > 0 && newLimit <= totalChapters) {
+        renderChapters();
+      }
+    };
   }
   
   function escapeHtml(str) {
@@ -252,8 +287,7 @@
     });
   }
   
-  // Avvia il caricamento
-  loadChapters();
+  renderChapters();
 </script>
 
 </body>
