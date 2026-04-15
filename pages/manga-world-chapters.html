@@ -172,6 +172,9 @@
     console.log('🔍 Caricamento capitoli per ID:', mangaId);
     
     try {
+      const testUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://www.mangaworld.cx/manga/' + mangaId)}`;
+    console.log('Test URL:', testUrl);
+
       const chapters = await mangaAPI.findChapters(mangaId);
       console.log(`✅ Trovati ${chapters.length} capitoli`);
       
@@ -180,9 +183,13 @@
           <div class="error">
             📭 Nessun capitolo trovato per ${escapeHtml(mangaTitle)}
             <br><br>
-            <a href="https://www.mangaworld.cx/manga/${mangaId}" target="_blank" style="color: #8b5cf6;">📖 Apri su MangaWorld</a>
-          </div>
-        `;
+            <p>Il sito MangaWorld potrebbe aver cambiato struttura.</p>
+            <p>Puoi leggere il manga direttamente qui:</p>
+            <a href="https://www.mangaworld.cx/manga/${mangaId}" target="_blank" style="color: #8b5cf6; display: inline-block; margin-top: 10px; padding: 10px 20px; background: rgba(139,92,246,0.3); border-radius: 25px;">📖 Apri su MangaWorld</a>
+          <br><br>
+          <button onclick="location.reload()" style="background: #8b5cf6; border: none; color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer;">↻ Riprova</button>
+        </div>
+      `;
         return;
       }
       

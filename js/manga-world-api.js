@@ -1,5 +1,5 @@
 // js/manga-world-api.js
-// Adattato dal provider Seanime per KitsuManga
+// API per MangaWorld - Versione robusta
 
 class MangaWorldAPI {
   constructor() {
@@ -7,7 +7,7 @@ class MangaWorldAPI {
     this.corsProxy = 'https://corsproxy.io/?url=';
   }
 
-  // 1. Cerca manga
+  // Cerca manga
   async searchManga(query) {
     const queryParam = query.toLowerCase();
     const url = `${this.api}/archive?keyword=${encodeURIComponent(queryParam)}`;
@@ -16,8 +16,6 @@ class MangaWorldAPI {
     try {
       const response = await fetch(proxyUrl);
       const html = await response.text();
-      
-      // Parsing HTML nel browser
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       
@@ -50,90 +48,124 @@ class MangaWorldAPI {
     }
   }
 
-  // 2. Trova capitoli (ADATTATO DAL CODICE ORIGINALE)
+  // Trova capitoli - Versione con MULTIPLI SELETTORI
   async findChapters(mangaId) {
     const url = `${this.api}/manga/${mangaId}`;
     const proxyUrl = this.corsProxy + encodeURIComponent(url);
     
+    console.log('🔍 Caricamento pagina:', proxyUrl);
+    
     try {
       const response = await fetch(proxyUrl);
       const html = await response.text();
+      
+      // DEBUG: Salva HTML per analisi
+      console.log('HTML ricevuto, lunghezza:', html.length);
+      
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       
       const chapters = [];
       
-      // CERCA IL WRAPPER DEI CAPITOLI (come nel codice originale)
-      const chaptersWrapper = doc.querySelector('div.chapters-wrapper');
-      if (!chaptersWrapper) {
-        console.warn('Nessun wrapper capitoli trovato');
-        return [];
-      }
+      // Prova diversi selettori (MangaWorld può cambiare struttura)
+      const selectors = [
+        // Selettori dal provider originale
+        'div.chapters-wrapper div.chapter a',
+        'div.chapters-wrapper div.volume-chapters div a',
+        'div.chapter a',
+        'a[href*="/read/"]',
+        // Selettori aggiuntivi
+        '.chapter-list a',
+        '.chapternumber a',
+        'li.chapter a',
+        'div[class*="chapter"] a'
+      ];
       
-      // CONTROLLA SE CI SONO VOLUMI (come nel codice originale)
-      const volumesContainer = chaptersWrapper.querySelector('div.volume-element');
+      let links = [];
+      let usedSelector = '';
       
-      if (volumesContainer) {
-        // CON VOLUMI
-        const volumes = chaptersWrapper.querySelectorAll('div.volume-element');
-        for (const volume of volumes) {
-          const volumeChapters = volume.querySelectorAll('div.volume-chapters div');
-          for (const chap of volumeChapters) {
-            const link = chap.querySelector('a');
-            if (link) {
-              const href = link.getAttribute('href');
-              const id = href.split('manga/')[1]?.split('?')[0] || '';
-              const url = href.split('?')[0];
-              const titleSpan = chap.querySelector('span');
-              const title = titleSpan?.textContent || '';
-              const chapter = title.split(' ')[1] || '0';
-              
-              chapters.push({
-                id: id,
-                url: url.startsWith('http') ? url : `${this.api}${url}`,
-                title: title,
-                chapter: chapter,
-                index: parseFloat(chapter)
-              });
-            }
-          }
-        }
-      } else {
-        // SENZA VOLUMI (come nel codice originale)
-        const chapterElements = chaptersWrapper.querySelectorAll('div.chapter');
-        for (const chap of chapterElements) {
-          const link = chap.querySelector('a');
-          if (link) {
-            const href = link.getAttribute('href');
-            const id = href.split('manga/')[1]?.split('?')[0] || '';
-            const url = href.split('?')[0];
-            const titleSpan = chap.querySelector('span.d-inline-block');
-            const title = titleSpan?.textContent || '';
-            const chapter = title.split(' ')[1] || '0';
-            
-            chapters.push({
-              id: id,
-              url: url.startsWith('http') ? url : `${this.api}${url}`,
-              title: title,
-              chapter: chapter,
-              index: parseFloat(chapter)
-            });
-          }
+      for (const selector of selectors) {
+        links = doc.querySelectorAll(selector);
+        if (links.length > 0) {
+          usedSelector = selector;
+          console.log(`✅ Selettore trovato: "${selector}" -> ${links.length} link`);
+          break;
         }
       }
       
-      // Inverte l'ordine (dal più recente al più vecchio, come nell'originale)
-      chapters.reverse();
-      console.log(`Trovati ${chapters.length} capitoli per ${mangaId}`);
-      return chapters;
+      // Se nessun selettore funziona, cerca TUTTI i link che contengono "/read/"
+      if (links.length === 0) {
+        links = doc.querySelectorAll('a[href*="/read/"]');
+        usedSelector = 'a[href*="/read/"]';
+        console.log(`🔍 Link con /read/ trovati: ${links.length}`);
+      }
+      
+      // Se ancora niente, cerca qualsiasi link con "capitolo" nel testo
+      if (links.length === 0) {
+        const allLinks = doc.querySelectorAll('a');
+        links = Array.from(allLinks).filter(a => 
+          a.textContent.toLowerCase().includes('capitolo') ||
+          a.textContent.toLowerCase().includes('chapter')
+        );
+        console.log(`🔍 Link con testo "capitolo" trovati: ${links.length}`);
+      }
+      
+      for (const link of links) {
+        const href = link.getAttribute('href');
+        const text = link.textContent.trim();
+        
+        if (href && href.includes('/read/')) {
+          // Estrai l'ID del capitolo
+          let chapterId = href.split('/read/')[1]?.split('/')[0] || href.split('/read/')[1];
+          if (chapterId.includes('?')) chapterId = chapterId.split('?')[0];
+          
+          // Estrai il numero del capitolo
+          let chapterNum = text.match(/\d+(?:\.\d+)?/);
+          let chapterNumber = chapterNum ? chapterNum[0] : '?';
+          
+          // Costruisci URL completo
+          let fullUrl = href.startsWith('http') ? href : `${this.api}${href}`;
+          if (!fullUrl.includes('?style=list')) {
+            fullUrl = fullUrl + '?style=list';
+          }
+          
+          chapters.push({
+            id: chapterId,
+            url: fullUrl,
+            title: text,
+            chapter: chapterNumber,
+            index: parseFloat(chapterNumber)
+          });
+        }
+      }
+      
+      // Rimuovi duplicati per ID
+      const uniqueChapters = [];
+      const seenIds = new Set();
+      for (const chap of chapters) {
+        if (!seenIds.has(chap.id)) {
+          seenIds.add(chap.id);
+          uniqueChapters.push(chap);
+        }
+      }
+      
+      // Ordina per numero di capitolo (dal più vecchio al più recente)
+      uniqueChapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
+      
+      console.log(`📚 Trovati ${uniqueChapters.length} capitoli unici per ${mangaId}`);
+      if (uniqueChapters.length > 0) {
+        console.log(`Primo capitolo: ${uniqueChapters[0].chapter}, Ultimo: ${uniqueChapters[uniqueChapters.length-1].chapter}`);
+      }
+      
+      return uniqueChapters;
       
     } catch (error) {
-      console.error('Errore findChapters:', error);
+      console.error('❌ Errore findChapters:', error);
       return [];
     }
   }
 
-  // 3. Trova le pagine di un capitolo
+  // Trova le pagine di un capitolo
   async findChapterPages(chapterId) {
     const url = `${this.api}/manga/${chapterId}?style=list`;
     const proxyUrl = this.corsProxy + encodeURIComponent(url);
@@ -145,11 +177,11 @@ class MangaWorldAPI {
       const doc = parser.parseFromString(html, 'text/html');
       
       const pages = [];
-      const images = doc.querySelectorAll('div#page img');
+      const images = doc.querySelectorAll('div#page img, .reading-content img, img[src*="mangaworld"]');
       
       images.forEach((img, index) => {
         const imgUrl = img.getAttribute('src');
-        if (imgUrl) {
+        if (imgUrl && imgUrl.startsWith('http')) {
           pages.push({
             url: imgUrl,
             index: index
@@ -157,6 +189,7 @@ class MangaWorldAPI {
         }
       });
       
+      console.log(`📖 Trovate ${pages.length} pagine per capitolo ${chapterId}`);
       return pages;
     } catch (error) {
       console.error('Errore findChapterPages:', error);
